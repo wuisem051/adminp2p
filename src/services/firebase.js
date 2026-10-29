@@ -2,8 +2,6 @@
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
-// API keys ocultas via variables de entorno de Vite (.env)
-// NUNCA escribas las keys directamente aqui
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -14,7 +12,14 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
-export const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-export const db = getFirestore(app);
-export const auth = getAuth(app);
+let app, db, auth;
+try {
+  app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+  db = getFirestore(app);
+  auth = getAuth(app);
+} catch (e) {
+  console.error("Firebase init error:", e);
+}
+
+export { app, db, auth };
 export default app;

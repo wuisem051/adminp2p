@@ -1,28 +1,25 @@
-﻿# Configuracion de Netlify para Panel Admin P2P
-# Proyecto: adminp2p
+﻿# Configuracion Netlify para Panel Admin P2P
 
 [build]
   command = "npm run build"
   publish = "dist"
 
-# Redireccionamiento SPA
+[build.environment]
+  NODE_VERSION = "20"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
 
-# Headers de seguridad HTTP — Admin panel debe ser mas restrictivo
 [[headers]]
   for = "/*"
   [headers.values]
     X-Frame-Options = "DENY"
-    X-XSS-Protection = "1; mode=block"
     X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
-    Content-Security-Policy = "default-src self; script-src self unsafe-inline unsafe-eval https://*.firebaseapp.com https://*.googleapis.com; style-src self unsafe-inline; connect-src self https://*.firebaseio.com https://*.googleapis.com https://firestore.googleapis.com wss://*.firebaseio.com; img-src self data: https:; frame-src none;"
 
-# Cache largo para assets estaticos (hashes unicos de Vite)
 [[headers]]
   for = "/assets/*"
   [headers.values]
