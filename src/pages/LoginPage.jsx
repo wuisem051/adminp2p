@@ -1,60 +1,28 @@
 import React, { useState } from "react";
-import { useAdminAuth } from "../context/AdminAuthContext";
-import { Shield, Mail, Lock, Loader2, AlertCircle, UserPlus, CheckCircle2 } from "lucide-react";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
-import { auth, db } from "../services/firebase";
+import { useAdminAuth, AUTHORIZED_ADMIN_EMAIL } from "../context/AdminAuthContext";
+import { Shield, Mail, Lock, Loader2, AlertCircle } from "lucide-react";
 
 export default function LoginPage() {
   const { loginAdmin } = useAdminAuth();
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(AUTHORIZED_ADMIN_EMAIL);
   const [password, setPassword] = useState("");
-  const [adminSecret, setAdminSecret] = useState("");
-  const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [successMsg, setSuccessMsg] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    setSuccessMsg("");
     setLoading(true);
 
     try {
-      if (isRegisterMode) {
-        // Llave de seguridad maestra para inicializar al SuperAdmin
-        if (adminSecret.trim() !== "P2P_ADMIN_2026_MASTER") {
-          throw new Error("Clave Maestra de Seguridad incorrecta.");
-        }
-        if (password.length < 6) {
-          throw new Error("La contraseña debe tener al menos 6 caracteres.");
-        }
-
-        const cred = await createUserWithEmailAndPassword(auth, email, password);
-        await setDoc(doc(db, "users", cred.user.uid), {
-          uid: cred.user.uid,
-          email: email,
-          displayName: "Super Administrador",
-          role: "admin",
-          balanceUsdt: 0,
-          createdAt: new Date().toISOString()
-        }, { merge: true });
-
-        setSuccessMsg("¡Administrador registrado exitosamente! Iniciando sesión...");
-        setTimeout(() => {
-          loginAdmin(email, password);
-        }, 1200);
-      } else {
-        await loginAdmin(email, password);
-      }
+      await loginAdmin(email, password);
     } catch (err) {
-      if (err.code === "auth/email-already-in-use") {
-        setError("Este correo ya está registrado en Firebase. Inicia sesión directamente.");
-      } else if (err.code === "auth/invalid-credential" || err.code === "auth/wrong-password") {
-        setError("Credenciales incorrectas.");
+      if (err.code === "auth/invalid-credential" || err.code === "auth/wrong-password") {
+        setError("Contraseña incorrecta.");
+      } else if (err.code === "auth/user-not-found") {
+        setError("Usuario no encontrado en Firebase.");
       } else {
-        setError(err.message || "Error al procesar la solicitud.");
+        setError(err.message || "Error al autenticar administrador.");
       }
     } finally {
       setLoading(false);
@@ -69,7 +37,7 @@ export default function LoginPage() {
             <Shield size={28} className="text-white" />
           </div>
           <h1 className="text-2xl font-black text-white">Panel Admin</h1>
-          <p className="text-slate-400 text-sm mt-1">Billetera P2P — Control Total</p>
+          <p className="text-slate-400 text-sm mt-1">Billetera P2P — Acceso Restringido</p>
         </div>
 
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl">
@@ -80,27 +48,22 @@ export default function LoginPage() {
             </div>
           )}
 
-          {successMsg && (
-            <div className="mb-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2">
-              <CheckCircle2 size={16} className="shrink-0" />
-              <span>{successMsg}</span>
-            </div>
-          )}
-
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="text-xs text-slate-400 block mb-1">Correo Administrador</label>
+              <label className="text-xs text-slate-400 block mb-1">Correo Administrador Autorizado</label>
               <div className="relative">
                 <Mail size={15} className="absolute left-3.5 top-3 text-slate-500" />
                 <input
                   type="email"
-                  placeholder="admin@billetera.com"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-3 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-3 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500 font-mono"
                   required
                 />
               </div>
+              <p className="text-[10px] text-emerald-400 mt-1">
+                🔒 Candado de Seguridad Activo: Exclusivo para wuisem051@gmail.com
+              </p>
             </div>
 
             <div>
@@ -118,28 +81,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {isRegisterMode && (
-              <div className="animate-fade-in">
-                <label className="text-xs text-amber-400 font-semibold block mb-1">
-                  Clave Maestra de Seguridad
-                </label>
-                <div className="relative">
-                  <Shield size={15} className="absolute left-3.5 top-3 text-amber-400" />
-                  <input
-                    type="password"
-                    placeholder="P2P_ADMIN_2026_MASTER"
-                    value={adminSecret}
-                    onChange={e => setAdminSecret(e.target.value)}
-                    className="w-full bg-slate-950 border border-amber-500/40 rounded-xl pl-10 pr-3 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400"
-                    required
-                  />
-                </div>
-                <p className="text-[10px] text-slate-500 mt-1">
-                  Protección anti-intrusos: solo el dueño con esta clave maestra puede crear el rol admin.
-                </p>
-              </div>
-            )}
-
             <button
               type="submit"
               disabled={loading}
@@ -147,29 +88,11 @@ export default function LoginPage() {
             >
               {loading ? (
                 <Loader2 size={18} className="animate-spin" />
-              ) : isRegisterMode ? (
-                "Registrar Administrador"
               ) : (
                 "Ingresar como Admin"
               )}
             </button>
           </form>
-
-          <div className="mt-4 pt-3 border-t border-slate-800/60 text-center">
-            <button
-              type="button"
-              onClick={() => {
-                setIsRegisterMode(!isRegisterMode);
-                setError("");
-                setSuccessMsg("");
-              }}
-              className="text-xs text-slate-400 hover:text-violet-400 transition-colors"
-            >
-              {isRegisterMode
-                ? "¿Ya tienes cuenta? Iniciar Sesión"
-                : "¿No tienes credencial? Crear Administrador"}
-            </button>
-          </div>
         </div>
       </div>
     </div>
