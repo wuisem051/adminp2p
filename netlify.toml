@@ -1,5 +1,3 @@
-﻿# Configuracion Netlify para Panel Admin P2P
-
 [build]
   command = "npm run build"
   publish = "dist"
